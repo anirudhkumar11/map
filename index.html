@@ -12,7 +12,9 @@
       --deep-blue: #0259DD;
       --vibrant-red: #FF6648;
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
       font-family: 'Segoe UI', Tahoma, sans-serif;
       background: var(--soft-bg);
@@ -22,12 +24,15 @@
       align-items: center;
       padding: 1rem;
     }
+
     h1 {
       margin-bottom: 1rem;
       font-size: clamp(1.6rem, 4vw, 2.5rem);
+      color: var(--deep-blue);
       font-weight: 700;
       text-align: center;
     }
+
     button {
       background: var(--vibrant-red);
       color: white;
@@ -41,7 +46,12 @@
       margin-bottom: 1rem;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
-    button:hover { background: var(--deep-blue); transform: translateY(-2px); }
+
+    button:hover {
+      background: var(--deep-blue);
+      transform: translateY(-2px);
+    }
+
     #map {
       width: 100%;
       max-width: 650px;
@@ -53,6 +63,7 @@
       margin-bottom: 1rem;
       border: 3px solid var(--light-blue);
     }
+
     #coords {
       font-size: clamp(0.9rem, 3vw, 1.1rem);
       color: var(--vibrant-red);
@@ -63,8 +74,14 @@
       border-radius: 12px;
       box-shadow: 0 3px 10px rgba(0,0,0,0.15);
     }
-    @media (max-width: 768px) { #map { height: 55vh; } }
-    @media (max-width: 480px) { button { width: 100%; } }
+
+    @media (max-width: 768px) {
+      #map { height: 55vh; }
+    }
+
+    @media (max-width: 480px) {
+      button { width: 100%; }
+    }
   </style>
 </head>
 <body>
@@ -75,12 +92,10 @@
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script type="module">
-    console.log("✅ Tourist app loaded");
-
-    // Firebase setup
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
     import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-database.js";
 
+    // ✅ Your Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyAzwiwp0ByoUkofWPJG1Ux8BY8ueCDwVjM",
       authDomain: "geo-fencing-202f9.firebaseapp.com",
@@ -94,9 +109,11 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    console.log("✅ Firebase initialized");
 
-    // Leaflet map setup
+    // ✅ Generate random tourist ID (unique for each device)
+    const touristId = "tourist_" + Math.floor(Math.random() * 100000);
+
+    // Setup map
     const map = L.map('map').setView([0, 0], 2);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap'
@@ -106,7 +123,6 @@
     let accuracyCircle = null;
 
     function startTracking() {
-      console.log("📡 startTracking called");
       if (!navigator.geolocation) {
         alert("Your device does not support location tracking.");
         return;
@@ -117,19 +133,15 @@
         const lng = position.coords.longitude;
         const acc = position.coords.accuracy;
 
-        console.log("📍 Got position:", { lat, lng, acc });
-
-        // Write to Firebase
-        set(ref(db, 'tourists/tourist1'), {
+        // ✅ Each tourist has their own entry
+        set(ref(db, 'tourists/' + touristId), {
           latitude: lat,
           longitude: lng,
           accuracy: acc,
           timestamp: Date.now()
-        })
-        .then(() => console.log("✅ Location written to Firebase"))
-        .catch(err => console.error("❌ Firebase write error:", err));
+        });
 
-        // Update map
+        // Map marker update
         if (!marker) {
           marker = L.marker([lat, lng]).addTo(map);
         } else {
@@ -147,9 +159,8 @@
         map.setView([lat, lng], 17);
 
         document.getElementById("coords").textContent =
-          `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)} (±${Math.round(acc)}m)`;
+          `Tourist: ${touristId} | Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)} (±${Math.round(acc)}m)`;
       }, (err) => {
-        console.error("❌ Geolocation error:", err);
         document.getElementById("coords").textContent = "Error: " + err.message;
       }, {
         enableHighAccuracy: true,
