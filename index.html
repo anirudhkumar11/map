@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tourist Location Tracker</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <style>
+    body {
+      background:#FFE1D7;
+      font-family: Arial, sans-serif;
+      text-align:center;
+    }
+    h1 {
+      color:#0259DD;
+    }
+    #map {
+      height:300px;
+      width:90%;
+      max-width:600px;
+      margin:10px auto;
+      border-radius:12px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.2);
+    }
+    button {
+      background:#FF6648;
+      color:white;
+      border:none;
+      padding:12px 24px;
+      font-size:16px;
+      border-radius:25px;
+      cursor:pointer;
+      margin-bottom:15px;
+    }
+    button:hover {
+      background:#0259DD;
+    }
+    #coords {
+      color:#0259DD;
+      font-weight:bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Tourist Location Tracker</h1>
+  <button onclick="startTracking()">Start Sharing My Location</button>
+  <div id="map"></div>
+  <p id="coords">Waiting for location...</p>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
+    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const map = L.map('map').setView([0,0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution:'&copy; OpenStreetMap'
+    }).addTo(map);
+
+    let marker, accuracyCircle;
+
+    function startTracking() {
+      if (!navigator.geolocation) {
+        alert("Your device does not support location tracking.");
+        return;
+      }
+
+      navigator.geolocation.watchPosition((pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const acc = pos.coords.accuracy;
+
+        // ✅ Send live location to Firebase
+        set(ref(db, 'tourists/tourist1'), {
+          latitude: lat,
+          longitude: lng,
+          timestamp: Date.now()
+        });
+
+        // ✅ Update map & marker
+        if (!marker) {
+          marker = L.marker([lat, lng]).addTo(map);
+        } else {
+          marker.setLatLng([lat, lng]);
+        }
+
+        // ✅ Accuracy circle (pinpoint feel)
+        if (accuracyCircle) {
+          accuracyCircle.remove();
+        }
+        accuracyCircle = L.circle([lat, lng], {
+          radius: acc,   // show real accuracy radius in meters
+          color: "#84AFFB",
+          fillColor: "#84AFFB",
+          fillOpacity: 0.3
+        }).addTo(map);
+
+        // ✅ Zoom close for pinpoint view
+        map.setView([lat, lng], 18);
+
+        // ✅ Show text with accuracy
+        document.getElementById("coords").textContent =
+          `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)} (±${Math.round(acc)}m)`;
+
+      }, (err) => {
+        document.getElementById("coords").textContent = "Error: " + err.message;
+      }, {
+        enableHighAccuracy: true,  // 🔑 Forces GPS
+        timeout: 10000,
+        maximumAge: 0
+      });
+    }
+
+    // make button work
+    window.startTracking = startTracking;
+  </script>
+</body>
+</html>
