@@ -1,128 +1,163 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tourist Location Tracker</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
+    :root {
+      --soft-bg: #FFE1D7;
+      --light-blue: #84AFFB;
+      --deep-blue: #0259DD;
+      --vibrant-red: #FF6648;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background:#FFE1D7;
-      font-family: Arial, sans-serif;
-      text-align:center;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: var(--soft-bg);
+      color: var(--deep-blue);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
     }
     h1 {
-      color:#0259DD;
-    }
-    #map {
-      height:300px;
-      width:90%;
-      max-width:600px;
-      margin:10px auto;
-      border-radius:12px;
-      box-shadow:0 4px 12px rgba(0,0,0,0.2);
+      margin-bottom: 1rem;
+      font-size: clamp(1.6rem, 4vw, 2.5rem);
+      font-weight: 700;
+      text-align: center;
     }
     button {
-      background:#FF6648;
-      color:white;
-      border:none;
-      padding:12px 24px;
-      font-size:16px;
-      border-radius:25px;
-      cursor:pointer;
-      margin-bottom:15px;
+      background: var(--vibrant-red);
+      color: white;
+      border: none;
+      padding: 0.9rem 2rem;
+      border-radius: 50px;
+      font-size: clamp(1rem, 3vw, 1.2rem);
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
-    button:hover {
-      background:#0259DD;
+    button:hover { background: var(--deep-blue); transform: translateY(-2px); }
+    #map {
+      width: 100%;
+      max-width: 650px;
+      height: 45vh;
+      min-height: 250px;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0px 6px 18px rgba(0,0,0,0.25);
+      margin-bottom: 1rem;
+      border: 3px solid var(--light-blue);
     }
     #coords {
-      color:#0259DD;
-      font-weight:bold;
+      font-size: clamp(0.9rem, 3vw, 1.1rem);
+      color: var(--vibrant-red);
+      font-weight: 600;
+      text-align: center;
+      background: var(--light-blue);
+      padding: 0.7rem 1rem;
+      border-radius: 12px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.15);
     }
+    @media (max-width: 768px) { #map { height: 55vh; } }
+    @media (max-width: 480px) { button { width: 100%; } }
   </style>
 </head>
 <body>
   <h1>Tourist Location Tracker</h1>
-  <button onclick="startTracking()">Start Sharing My Location</button>
+  <button onclick="startTracking()">Share My Location</button>
   <div id="map"></div>
-  <p id="coords">Waiting for location...</p>
+  <div id="coords">Waiting for location...</div>
 
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script type="module">
+    console.log("✅ Tourist app loaded");
+
+    // Firebase setup
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
     import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-database.js";
 
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT_ID.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
+      apiKey: "AIzaSyAzwiwp0ByoUkofWPJG1Ux8BY8ueCDwVjM",
+      authDomain: "geo-fencing-202f9.firebaseapp.com",
+      databaseURL: "https://geo-fencing-202f9-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "geo-fencing-202f9",
+      storageBucket: "geo-fencing-202f9.firebasestorage.app",
+      messagingSenderId: "815479242725",
+      appId: "1:815479242725:web:0eaae779912a495b94f90c",
+      measurementId: "G-WB7LFFPT4D"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+    console.log("✅ Firebase initialized");
 
-    const map = L.map('map').setView([0,0], 2);
+    // Leaflet map setup
+    const map = L.map('map').setView([0, 0], 2);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution:'&copy; OpenStreetMap'
+      attribution: '&copy; OpenStreetMap'
     }).addTo(map);
 
-    let marker, accuracyCircle;
+    let marker = null;
+    let accuracyCircle = null;
 
     function startTracking() {
+      console.log("📡 startTracking called");
       if (!navigator.geolocation) {
         alert("Your device does not support location tracking.");
         return;
       }
 
-      navigator.geolocation.watchPosition((pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        const acc = pos.coords.accuracy;
+      navigator.geolocation.watchPosition((position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        const acc = position.coords.accuracy;
 
-        // ✅ Send live location to Firebase
+        console.log("📍 Got position:", { lat, lng, acc });
+
+        // Write to Firebase
         set(ref(db, 'tourists/tourist1'), {
           latitude: lat,
           longitude: lng,
+          accuracy: acc,
           timestamp: Date.now()
-        });
+        })
+        .then(() => console.log("✅ Location written to Firebase"))
+        .catch(err => console.error("❌ Firebase write error:", err));
 
-        // ✅ Update map & marker
+        // Update map
         if (!marker) {
           marker = L.marker([lat, lng]).addTo(map);
         } else {
           marker.setLatLng([lat, lng]);
         }
 
-        // ✅ Accuracy circle (pinpoint feel)
-        if (accuracyCircle) {
-          accuracyCircle.remove();
-        }
+        if (accuracyCircle) accuracyCircle.remove();
         accuracyCircle = L.circle([lat, lng], {
-          radius: acc,   // show real accuracy radius in meters
+          radius: acc,
           color: "#84AFFB",
           fillColor: "#84AFFB",
-          fillOpacity: 0.3
+          fillOpacity: 0.25
         }).addTo(map);
 
-        // ✅ Zoom close for pinpoint view
-        map.setView([lat, lng], 18);
+        map.setView([lat, lng], 17);
 
-        // ✅ Show text with accuracy
         document.getElementById("coords").textContent =
           `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)} (±${Math.round(acc)}m)`;
-
       }, (err) => {
+        console.error("❌ Geolocation error:", err);
         document.getElementById("coords").textContent = "Error: " + err.message;
       }, {
-        enableHighAccuracy: true,  // 🔑 Forces GPS
+        enableHighAccuracy: true,
         timeout: 10000,
         maximumAge: 0
       });
     }
 
-    // make button work
     window.startTracking = startTracking;
   </script>
 </body>
