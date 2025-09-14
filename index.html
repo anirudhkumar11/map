@@ -1,14 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tourist Location Tracker</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <style>
-    :root {
-      --soft-bg: #FFE1D7;
-      --light-blue: #84AFFB;
+  ;
       --deep-blue: #0259DD;
       --vibrant-red: #FF6648;
     }
@@ -40,21 +33,7 @@
       padding: 0.9rem 2rem;
       border-radius: 50px;
       font-size: clamp(1rem, 3vw, 1.2rem);
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      margin-bottom: 1rem;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-
-    button:hover {
-      background: var(--deep-blue);
-      transform: translateY(-2px);
-    }
-
-    #map {
-      width: 100%;
-      max-width: 650px;
+ 
       height: 45vh;
       min-height: 250px;
       border-radius: 20px;
@@ -115,39 +94,7 @@
 
     // Setup map
     const map = L.map('map').setView([0, 0], 2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
-
-    let marker = null;
-    let accuracyCircle = null;
-
-    function startTracking() {
-      if (!navigator.geolocation) {
-        alert("Your device does not support location tracking.");
-        return;
-      }
-
-      navigator.geolocation.watchPosition((position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        const acc = position.coords.accuracy;
-
-        // ✅ Each tourist has their own entry
-        set(ref(db, 'tourists/' + touristId), {
-          latitude: lat,
-          longitude: lng,
-          accuracy: acc,
-          timestamp: Date.now()
-        });
-
-        // Map marker update
-        if (!marker) {
-          marker = L.marker([lat, lng]).addTo(map);
-        } else {
-          marker.setLatLng([lat, lng]);
-        }
-
+    L.tileLayer('https
         if (accuracyCircle) accuracyCircle.remove();
         accuracyCircle = L.circle([lat, lng], {
           radius: acc,
