@@ -95,7 +95,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
     import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-database.js";
 
-    // ✅ Your Firebase config
+    // ✅ Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyAzwiwp0ByoUkofWPJG1Ux8BY8ueCDwVjM",
       authDomain: "geo-fencing-202f9.firebaseapp.com",
@@ -110,7 +110,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // ✅ Generate random tourist ID (unique for each device)
+    // ✅ Unique tourist ID
     const touristId = "tourist_" + Math.floor(Math.random() * 100000);
 
     // Setup map
@@ -133,7 +133,7 @@
         const lng = position.coords.longitude;
         const acc = position.coords.accuracy;
 
-        // ✅ Each tourist has their own entry
+        // ✅ Save to Firebase
         set(ref(db, 'tourists/' + touristId), {
           latitude: lat,
           longitude: lng,
@@ -157,9 +157,10 @@
         }).addTo(map);
 
         map.setView([lat, lng], 17);
+        map.invalidateSize(); // ✅ ensures map resizes correctly
 
         document.getElementById("coords").textContent =
-          Tourist: ${touristId} | Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)} (±${Math.round(acc)}m);
+          `Tourist: ${touristId} | Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)} (±${Math.round(acc)}m)`;
       }, (err) => {
         document.getElementById("coords").textContent = "Error: " + err.message;
       }, {
